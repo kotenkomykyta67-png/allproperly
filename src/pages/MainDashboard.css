@@ -1,0 +1,91 @@
+@media (max-width: 600px) {
+  body, #root, .dashboard-card, .dashboard-board, .dashboard-key-panel {
+    width: 100vw !important;
+    min-width: 100vw !important;
+    max-width: 100vw !important;
+    margin: 0 auto !important;
+    overflow-x: hidden !important;
+  }
+}
+/* Dashboard Circle Chart Animations */
+
+@keyframes fillTo5 {
+  0% { stroke-dasharray: var(--origin-length, 0) var(--origin-gap, 213.63); }
+  100% { stroke-dasharray: var(--five-length, 10.9956) var(--five-gap, 202.6344); }
+}
+
+@keyframes fillBack {
+  0% { stroke-dasharray: var(--five-length, 10.9956) var(--five-gap, 202.6344); }
+  100% { stroke-dasharray: var(--origin-length, 0) var(--origin-gap, 213.63); }
+}
+
+@keyframes fillToFull {
+  0% { stroke-dasharray: var(--origin-length, 0) var(--origin-gap, 213.63); }
+  100% { stroke-dasharray: var(--full-length, 219.91) 0; }
+}
+
+@keyframes shrinkToZero {
+  0% { stroke-dasharray: var(--full-length, 219.91) 0; }
+  100% { stroke-dasharray: 0 var(--full-length, 219.91); }
+}
+
+@keyframes expandFromZero {
+  0% { stroke-dasharray: 0 var(--full-length, 219.91); }
+  100% { stroke-dasharray: var(--full-length, 219.91) 0; }
+}
+
+@keyframes shrinkToOrigin {
+  0% { stroke-dasharray: var(--full-length, 219.91) 0; }
+  100% { stroke-dasharray: var(--origin-length, 0) var(--origin-gap, 219.91); }
+}
+
+/* Mobile Responsive Styles */
+@media (max-width: 600px) {
+  .dashboard-card {
+    width: 100vw !important;
+    min-width: 100vw !important;
+    max-width: 100vw !important;
+    margin: 0 !important;
+    border-radius: 18px !important;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.12);
+    padding: 16px !important;
+    overflow: visible !important;
+  }
+  .dashboard-card-content {
+    padding: 0 !important;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .dashboard-card-image {
+    width: 100% !important;
+    height: 180px !important;
+    border-radius: 16px !important;
+    object-fit: cover !important;
+    margin-bottom: 12px !important;
+  }
+  .dashboard-breakdown {
+    font-size: 15px !important;
+    padding: 0 !important;
+    margin-bottom: 8px !important;
+  }
+  .dashboard-tasks {
+    flex-direction: column !important;
+    gap: 8px !important;
+    margin-top: 8px !important;
+  }
+  .dashboard-task-list {
+    font-size: 13px !important;
+    padding: 0 !important;
+  }
+  .dashboard-title {
+    font-size: 20px !important;
+    font-weight: 700 !important;
+    margin-bottom: 8px !important;
+  }
+  .dashboard-header {
+    padding: 12px 16px !important;
+    font-size: 18px !important;
+    font-weight: 600 !important;
+  }
+}
