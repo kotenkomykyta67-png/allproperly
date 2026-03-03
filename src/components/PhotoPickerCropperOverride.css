@@ -1,0 +1,147 @@
+/* Force cropper background to white for transparent PNGs */
+.cropper-bg {
+  background-color: #fff !important;
+}
+
+.cropper-face {
+  background-color: transparent !important;
+}
+
+/* Override cropper-view-box default blue border with green */
+.cropper-container .cropper-view-box {
+  border: none !important;
+  outline: 1px solid #89AE99 !important;
+  outline-offset: 0px !important;
+}
+
+/* Hide all square/corner points and lines in avatar mode */
+.avatar-cropper .cropper-point.point-nw,
+.avatar-cropper .cropper-point.point-ne,
+.avatar-cropper .cropper-point.point-sw,
+.avatar-cropper .cropper-point.point-se,
+.avatar-cropper .cropper-line,
+.avatar-cropper .cropper-line:before,
+.avatar-cropper .cropper-line:after {
+  display: none !important;
+}
+
+/* Override Cropper.js overlay color */
+.cropper-modal {
+  opacity: 0.2 !important; /* Adjust as needed */
+}
+
+/* Try to override all possible blue lines in Cropper.js */
+.cropper-line,
+.cropper-line:before,
+.cropper-line:after,
+.cropper-point,
+.cropper-view-box:before,
+.cropper-view-box:after,
+
+.cropper-face,
+.cropper-face:before,
+.cropper-face:after {
+  background-color: transparent !important;
+  border-color: #89AE99 !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+.cropper-container .cropper-view-box {
+  border: none !important;
+  outline: 1px solid #89AE99 !important;
+  outline-offset: 0px !important;
+  background: transparent !important;
+}
+
+/* Remove blue from grid lines */
+.cropper-dashed {
+  border-color: #89AE99 !important;
+}
+
+/* Remove blue from guides */
+.cropper-center,
+.cropper-center:before,
+.cropper-center:after {
+  background-color: #89AE99 !important;
+  border-color: #89AE99 !important;
+}
+
+.cropper-point {
+  background-color: #89AE99 !important;
+  border: 1px solid #89AE99 !important;
+  width: 8px !important;
+  height: 8px !important;
+  opacity: 1 !important;
+}
+
+/* Offset corner points outward so border passes through their center */
+.cropper-point.point-nw {
+  left: -4.5px !important;
+  top: -4.5px !important;
+}
+.cropper-point.point-ne {
+  right: -4.5px !important;
+  top: -4.5px !important;
+}
+.cropper-point.point-sw {
+  left: -4.5px !important;
+  bottom: -4.5px !important;
+}
+.cropper-point.point-se {
+  right: -4.5px !important;
+  bottom: -4.5px !important;
+}
+
+/* Offset edge points outward */
+.cropper-point.point-n {
+  top: -4.5px !important;
+}
+.cropper-point.point-s {
+  bottom: -4.5px !important;
+}
+.cropper-point.point-w {
+  left: -4.5px !important;
+}
+.cropper-point.point-e {
+  right: -4.5px !important;
+}
+
+/* Fix left-bottom point size specifically (Cropper.js uses .cropper-point.point-se for southeast, .point-sw for southwest, etc.) */
+.cropper-point.point-sw {
+  width: 8px !important;
+  height: 8px !important;
+  left: -4.5px !important;
+  bottom: -4.5px !important;
+}
+
+
+/* Only apply circular crop box for avatar photopicker */
+
+/* Only avatar cropper removes border, normal cropper keeps border */
+.cropper-container .cropper-view-box {
+  border: none !important;
+  outline: 2px solid #89AE99 !important;
+  outline-offset: 0px !important;
+}
+
+.avatar-cropper .cropper-container .cropper-view-box {
+  border: none !important;
+  outline: 2px solid #89AE99 !important;
+  outline-offset: 0px !important;
+  border-radius: 50% !important;
+  background: transparent !important;
+}
+
+.avatar-cropper .cropper-face {
+  border: none !important;
+  border-radius: 50% !important;
+  background: transparent !important;
+}
+
+/* Remove blue outline on active */
+.cropper-container .cropper-view-box:active,
+.cropper-container .cropper-view-box:focus {
+  outline: 2px solid #89AE99 !important;
+  outline-offset: 0px !important;
+}
