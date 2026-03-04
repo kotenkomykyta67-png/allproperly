@@ -7,8 +7,6 @@ pnpm-debug.log*
 lerna-debug.log*
 
 # Environment variables
-.env
-.env.*
 !.env.example
 
 # Dependency directories
@@ -37,3 +35,4 @@ Thumbs.db
 
 # Misc
 coverage/
+config.bat

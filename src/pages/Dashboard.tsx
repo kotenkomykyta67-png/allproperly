@@ -33,7 +33,8 @@ const HelpSupportModal = ({ open, onClose }: { open: boolean, onClose: () => voi
     <Box sx={{
       p: { xs: 2, sm: 4 },
       position: 'relative',
-      minWidth: 360,
+      minWidth: 0,
+      maxWidth: '100%',
       width: '100%',
       display: 'flex',
       flexDirection: 'column',
@@ -132,7 +133,7 @@ import { getAuth } from "firebase/auth";
 // Calendar SVG Icon from Figma
 // Dashboard SVG Icon from Figma
 
-import { Box, Typography, List, ListItemText, Button, Avatar, IconButton, ListItemButton, Paper, Drawer } from "@mui/material";
+import { Box, Typography, List, ListItemText, Button, Avatar, IconButton, ListItemButton, Paper, Drawer, useMediaQuery } from "@mui/material";
 import { useUserAvatar } from '../context/UserAvatarContext';
 import Fade from "@mui/material/Fade";
 
@@ -220,6 +221,13 @@ const Dashboard: React.FC<DashboardProps> = ({ defaultPage = "dashboard" }) => {
 
   //sidbar collapse state
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const shouldAutoCollapseSidebar = useMediaQuery('(max-width:1279px)');
+  const expandedSidebarWidth = 'clamp(220px, 18vw, 300px)';
+  const collapsedSidebarWidth = '72px';
+
+  useEffect(() => {
+    setIsSidebarCollapsed(shouldAutoCollapseSidebar);
+  }, [shouldAutoCollapseSidebar]);
 
   useEffect(() => {
     const auth = getAuth();
@@ -482,7 +490,17 @@ const Dashboard: React.FC<DashboardProps> = ({ defaultPage = "dashboard" }) => {
   }, [page, selectedPropertyId]);
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: '#F9F9F9', fontFamily: 'Nunito, Arial, sans-serif' }}>
+    <Box
+      sx={{
+        '--app-sidebar-width': { xs: '0px', md: isSidebarCollapsed ? collapsedSidebarWidth : expandedSidebarWidth },
+        display: 'flex',
+        minHeight: '100vh',
+        bgcolor: '#F9F9F9',
+        fontFamily: 'Nunito, Arial, sans-serif',
+        maxWidth: '100%',
+        overflowX: 'hidden',
+      }}
+    >
       {/* Mobile top bar: hamburger + page title + bell (only on small screens) */}
       <Box sx={{ display: { xs: 'flex', md: 'none' }, position: 'fixed', top: 0, left: 0, right: 0, height: 48, bgcolor: '#fff', borderBottom: '1px solid #e8e8e8', alignItems: 'center', justifyContent: 'space-between', px: 2, pt: '6px', pb: '2px', zIndex: 1100 }}>
         <IconButton onClick={() => setMobileDrawerOpen(true)} edge="start" sx={{ p: 0.5 }}>
@@ -507,7 +525,7 @@ const Dashboard: React.FC<DashboardProps> = ({ defaultPage = "dashboard" }) => {
         </IconButton>
       </Box>
       {/* Mobile nav drawer */}
-      <Drawer anchor="left" open={mobileDrawerOpen} onClose={() => setMobileDrawerOpen(false)} PaperProps={{ sx: { width: '70vw', bgcolor: '#fff', boxShadow: '0 4px 24px rgba(0,0,0,0.1)', height: '100%' } }}>
+      <Drawer anchor="left" open={mobileDrawerOpen} onClose={() => setMobileDrawerOpen(false)} PaperProps={{ sx: { width: 'min(84vw, 340px)', bgcolor: '#fff', boxShadow: '0 4px 24px rgba(0,0,0,0.1)', height: '100%' } }}>
         <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
           {/* User Profile Header */}
           <Box sx={{ position: 'relative', p: 2, display: 'flex', alignItems: 'center', gap: 2, bgcolor: '#fff', borderBottom: '1px solid #f0f0f0' }}>
@@ -895,7 +913,7 @@ const Dashboard: React.FC<DashboardProps> = ({ defaultPage = "dashboard" }) => {
           position: 'fixed',
           top: 0,
           left: 0,
-          width: isSidebarCollapsed ? '72px' : '18vw',
+          width: 'var(--app-sidebar-width)',
           height: '100vh',
           display: { xs: 'none', md: 'flex' },
           flexDirection: 'column',

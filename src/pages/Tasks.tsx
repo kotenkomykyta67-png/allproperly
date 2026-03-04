@@ -1,8 +1,10 @@
 import { IconButton } from '@mui/material';
-import { Box, Typography, Button, Dialog, DialogTitle, DialogContent, TextField, MenuItem, Divider, Avatar, Checkbox, FormControlLabel, Modal, Skeleton, ClickAwayListener, CircularProgress } from '@mui/material';
+import { Box, Typography, Button, Dialog, DialogTitle, DialogContent, TextField, MenuItem, Divider, Avatar, Checkbox, FormControlLabel, Modal, ClickAwayListener, CircularProgress, useMediaQuery, useTheme } from '@mui/material';
 // Add import for Snackbar if not present
 import Autocomplete from '@mui/material/Autocomplete';
 import PhotoPicker from '../components/PhotoPicker';
+import EmptyState from '../components/common/EmptyState';
+import { TaskCardSkeleton } from '../components/common/AppSkeletons';
 import CloseIcon from '@mui/icons-material/Close';
 // Helper: Parse YYYY-MM-DD as local date (no timezone shift)
 function parseLocalDate(dateString: string) {
@@ -168,6 +170,11 @@ interface TasksProps {
 }
 
 const Tasks: React.FC<TasksProps> = ({ sidebar }) => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isCompactCards = useMediaQuery('(max-width:1199px)');
+  const showDesktopDetailsPanel = useMediaQuery('(min-width:1230px)');
+  const sidebarWidthFallback = sidebar ? '72px' : 'clamp(220px, 18vw, 300px)';
   // Map of userId to photoURL (using userId as key to avoid displayName collisions)
   const [userPhotoMap, setUserPhotoMap] = useState<{ [userId: string]: string }>({});
   // Map of displayName to userId (for looking up userId when assigning by displayName)
@@ -460,12 +467,21 @@ const Tasks: React.FC<TasksProps> = ({ sidebar }) => {
   const [selectedTask, setSelectedTask] = useState<any | null>(null);
   const [hoveredTaskId, setHoveredTaskId] = useState<string | null>(null);
   const [originalTask, setOriginalTask] = useState<any | null>(null);
+  const showMobileDetailsPanel = !showDesktopDetailsPanel && !!selectedTask;
     // When selectedTask changes, store a deep copy as the original for change detection
     useEffect(() => {
       if (selectedTask) {
         setOriginalTask(JSON.parse(JSON.stringify(selectedTask)));
       }
     }, [selectedTask?.id]);
+    useEffect(() => {
+      if (!showMobileDetailsPanel) return;
+      const previousOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = previousOverflow;
+      };
+    }, [showMobileDetailsPanel]);
   const today = new Date().toISOString().slice(0, 10);
   const [newTask, setNewTask] = useState({
     name: '',
@@ -1351,11 +1367,11 @@ const Tasks: React.FC<TasksProps> = ({ sidebar }) => {
 
   return (
     <>
-      <Box sx={{ display: "flex", flexDirection: "column", gap: 0, p: 3, bgcolor: "#F9F9F9", height: "100vh", overflow: 'hidden', ml: sidebar ? '75px' : '18vw', width: sidebar ? 'calc(100vw - 75px)' : 'calc(100vw - 18vw)' }}>
+      <Box sx={{ display: "flex", flexDirection: "column", gap: 0, p: { xs: 1.5, sm: 2, md: 3 }, bgcolor: "#F9F9F9", height: "100dvh", overflow: 'hidden', ml: { xs: 0, md: `var(--app-sidebar-width, ${sidebarWidthFallback})` }, width: { xs: '100%', md: `calc(100% - var(--app-sidebar-width, ${sidebarWidthFallback}))` }, maxWidth: '100%', minWidth: 0 }}>
       {/* Top Tabs - dynamic property types */}
-      <Box sx={{ display: "flex", alignItems: "center", gap: 3, mb: 2 }}>
+      <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2, flexWrap: 'wrap' }}>
         <Typography variant="h5" sx={{ fontSize: 18, fontWeight: 550, color: '#222', fontFamily: 'Nunito, Arial, sans-serif' }}>Tasks</Typography>
-        <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', mt: 1, overflowX: 'auto', maxWidth: '100%', scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' } }}>
           {propertyNames.map((name) => (
             <Box
               key={name}
@@ -1416,9 +1432,9 @@ const Tasks: React.FC<TasksProps> = ({ sidebar }) => {
             py: 1,
             boxShadow: 'none',
             textTransform: 'none',
-            display: { xs: 'none', sm: 'none', md: 'none', lg: 'block' },
-            '@media (min-width:700px)': { display: 'block' },
-            '@media (max-width:699px)': { display: 'none' },
+            width: { xs: '100%', sm: 'auto' },
+            mt: { xs: 1, sm: 0 },
+            ml: { xs: 0, sm: 1 },
           }}
           onClick={() => {
             // Prefill property field with current selected tab name (except for 'All Property' tab)
@@ -1433,8 +1449,8 @@ const Tasks: React.FC<TasksProps> = ({ sidebar }) => {
         </Button>
       </Box>
       {/* Add Task Modal */}
-      <Dialog open={addTaskOpen} onClose={() => setAddTaskOpen(false)}  fullWidth PaperProps={{ sx: { borderRadius: 2, p: 2 } }}>
-        <DialogTitle sx={{ fontFamily: 'Nunito, Arial, sans-serif', minWidth: 400, fontWeight: 550, fontSize: 22, pb: 1 }}>
+      <Dialog open={addTaskOpen} onClose={() => setAddTaskOpen(false)} fullWidth fullScreen={isMobile} PaperProps={{ sx: { borderRadius: { xs: 0, sm: 2 }, p: { xs: 1, sm: 2 } } }}>
+        <DialogTitle sx={{ fontFamily: 'Nunito, Arial, sans-serif', fontWeight: 550, fontSize: { xs: 20, sm: 22 }, pb: 1 }}>
           Add Task
         </DialogTitle>
         <DialogContent sx={{ pt: 1 }}>
@@ -1576,7 +1592,7 @@ const Tasks: React.FC<TasksProps> = ({ sidebar }) => {
                 />
               )}
             />
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mt: 2 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mt: 2, position: { xs: 'sticky', sm: 'static' }, bottom: 0, bgcolor: '#fff', pt: { xs: 1.5, sm: 0 }, zIndex: 2 }}>
               <Button variant="outlined" sx={{ fontSize: 15, fontFamily: 'Nunito, Arial, sans-serif', fontWeight: 400, textTransform: 'none', '&:hover': { border: '1px solid #ccc', background: '#F5F6F8' }, border: '1px solid #ccc', bgcolor: '#fff', color: '#222', px: 3.5, py: 1.5, borderRadius: 2, minWidth: 110
                   }} onClick={() => setAddTaskOpen(false)}>
                 Cancel
@@ -1590,28 +1606,26 @@ const Tasks: React.FC<TasksProps> = ({ sidebar }) => {
       </Dialog>
     {/* Main content: left and right columns */}
     <Box sx={{ 
-      display: "flex", 
-      gap: 3, 
-      flex: 1, 
-      // Ensure the main container allows overflow from scaled cards
+      display: "flex",
+      flexDirection: { xs: 'column', lg: 'row' },
+      gap: { xs: 2, md: 3 },
+      flex: 1,
       overflow: 'visible',
-      position: 'relative' 
+      position: 'relative',
+      minHeight: 0,
     }}>
         {/* Left: Tasks List */}
         <Box sx={{
           flex: 2,
-          minHeight: '91vh',
-          maxHeight: '91vh',
+          minHeight: { xs: 220, lg: '91vh' },
+          maxHeight: { xs: 'none', lg: '91vh' },
           overflowY: 'auto',
-          overflowX: 'visible', // allow box-shadow and border to show fully
+          overflowX: 'visible',
           scrollbarWidth: 'none',
           '&::-webkit-scrollbar': { display: 'none' },
-          // Ensure proper overflow handling for scaled cards
           position: 'relative',
-          // Add responsive padding to accommodate card scaling overflow
           paddingLeft: { xs: '4px', sm: '6px', md: '8px' },
           paddingRight: { xs: '4px', sm: '6px', md: '8px' },
-          // Ensure container can accommodate scaled elements
           '@media (max-width: 1200px)': {
             paddingLeft: '12px',
             paddingRight: '12px'
@@ -1644,19 +1658,25 @@ const Tasks: React.FC<TasksProps> = ({ sidebar }) => {
         </Box>
           {/* Active Tasks */}
           {loading ? (
-            Array.from({ length: 4 }).map((_, idx) => (
-              <Box key={idx} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', bgcolor: '#f5f5f5', borderRadius: '12px', p: 2, mb: '9px', mx: 3.5, border: '2px solid #e0e0e0', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <Skeleton variant="rectangular" width={32} height={32} sx={{ borderRadius: 2, mr: 2 }} />
-                  <Box>
-                    <Skeleton variant="text" width={120} height={28} sx={{ mb: 1, borderRadius: 1 }} />
-                    <Skeleton variant="text" width={180} height={18} sx={{ mb: 0.5, borderRadius: 1 }} />
-                    <Skeleton variant="text" width={90} height={14} sx={{ borderRadius: 1 }} />
-                  </Box>
-                </Box>
-                <Skeleton variant="circular" width={24} height={24} />
-              </Box>
-            ))
+            <TaskCardSkeleton count={5} />
+          ) : filteredTasks.length === 0 ? (
+            <Box sx={{ mx: { xs: 1, sm: 2.5 } }}>
+              <EmptyState
+                iconType="task"
+                compact
+                title="No Tasks Yet"
+                description="Create tasks to keep track of maintenance and home activities."
+                actionLabel="+ Add Task"
+                onAction={() => {
+                  setNewTask(t => ({
+                    ...t,
+                    property: selectedTab && selectedTab !== 'All Properties' ? selectedTab : ''
+                  }));
+                  setAddTaskOpen(true);
+                }}
+                minHeight={220}
+              />
+            </Box>
           ) : (
             filteredTasks.map((task) => {
               let tabIdx = propertyNames.findIndex(name => name === task.propertyType);
@@ -1665,16 +1685,15 @@ const Tasks: React.FC<TasksProps> = ({ sidebar }) => {
               const isHovered = hoveredTaskId === task.id;
               const showHoverEffect = !selectedTask && isHovered;
               const taskAnimState = animationState[task.id] || {};
-              // Responsive scaling: smaller scale on smaller screens to prevent cutting
               const getScaleFactor = () => {
-                if (window.innerWidth < 1200) {
+                if (isCompactCards) {
                   return isSelected ? 1.02 : showHoverEffect ? 1.015 : 1; // Smaller scale for small screens
                 } else {
                   return isSelected ? 1.03 : showHoverEffect ? 1.02 : 1; // Original scale for larger screens
                 }
               };
               const getCompletionScale = () => {
-                return window.innerWidth < 1200 ? 1.04 : 1.06; // Smaller completion scale for small screens
+                return isCompactCards ? 1.04 : 1.06; // Smaller completion scale for small screens
               };
               return (
                 <motion.div
@@ -1697,9 +1716,10 @@ const Tasks: React.FC<TasksProps> = ({ sidebar }) => {
                   style={{
                     borderRadius: 12,
                     padding: 16,
+                    minHeight: 96,
                     marginBottom: 9,
-                    marginLeft: window.innerWidth < 1200 ? (isSelected ? 18 : 20) : (isSelected ? 26 : 28), // Reduce margin slightly when selected to accommodate scaling
-                    marginRight: window.innerWidth < 1200 ? (isSelected ? 18 : 20) : (isSelected ? 26 : 28), // More space for smaller screens
+                    marginLeft: isMobile ? 8 : isCompactCards ? (isSelected ? 18 : 20) : (isSelected ? 26 : 28),
+                    marginRight: isMobile ? 8 : isCompactCards ? (isSelected ? 18 : 20) : (isSelected ? 26 : 28),
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "space-between",
@@ -1736,7 +1756,7 @@ const Tasks: React.FC<TasksProps> = ({ sidebar }) => {
                           opacity: taskAnimState._pendingVisualComplete ? 0.8 : 1,
                         }}
                         transition={{ color: { duration: 0.5 }, opacity: { duration: 0.5 } }}
-                        style={{ position: 'relative', display: 'inline-block', fontSize: 20, fontWeight: 550 }}
+                        style={{ position: 'relative', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: isMobile ? '58vw' : '40vw', fontSize: 20, fontWeight: 550, lineHeight: 1.25 }}
                       >
                         {task.title}
                         {taskAnimState._pendingStrikeComplete && (
@@ -1760,7 +1780,7 @@ const Tasks: React.FC<TasksProps> = ({ sidebar }) => {
                       <motion.div
                         animate={{ color: task._pendingVisualComplete ? '#fff' : '#343748' }}
                         transition={{ color: { duration: 0.5 } }}
-                        style={{ width: '100%', maxWidth: '40vw', overflow: 'hidden' }}
+                        style={{ width: '100%', maxWidth: isMobile ? '100%' : '40vw', overflow: 'hidden' }}
                       >
                         <Typography
                           variant="body2"
@@ -1845,19 +1865,17 @@ const Tasks: React.FC<TasksProps> = ({ sidebar }) => {
             />
           </Box>
           {loading ? (
-            Array.from({ length: 4 }).map((_, idx) => (
-              <Box key={idx} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', bgcolor: '#f5f5f5', borderRadius: '12px', p: 2, mb: 1.1, mx: 3.5, border: '2px solid #e0e0e0', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <Skeleton variant="rectangular" width={32} height={32} sx={{ borderRadius: 2, mr: 2 }} />
-                  <Box>
-                    <Skeleton variant="text" width={120} height={28} sx={{ mb: 1, borderRadius: 1 }} />
-                    <Skeleton variant="text" width={180} height={18} sx={{ mb: 0.5, borderRadius: 1 }} />
-                    <Skeleton variant="text" width={90} height={14} sx={{ borderRadius: 1 }} />
-                  </Box>
-                </Box>
-                <Skeleton variant="circular" width={24} height={24} />
-              </Box>
-            ))
+            <TaskCardSkeleton count={3} compact />
+          ) : filteredCompletedTasks.length === 0 ? (
+            <Box sx={{ mx: { xs: 1, sm: 2.5 } }}>
+              <EmptyState
+                iconType="task"
+                compact
+                title="No Completed Tasks"
+                description="Completed tasks will appear here."
+                minHeight={180}
+              />
+            </Box>
           ) : (
             filteredCompletedTasks.map((task) => {
               let tabIdx = propertyNames.findIndex(name => name === task.propertyType);
@@ -1872,10 +1890,11 @@ const Tasks: React.FC<TasksProps> = ({ sidebar }) => {
                     bgcolor: tabColors[tabIdx % tabColors.length],
                      borderRadius: 2,
                     p: 2,
+                    minHeight: 96,
                     mb: 1.1,
                     mx: 2.2,
-                    marginLeft: 3.5, // Adjusted to match active tasks
-                    marginRight: 3.5, // Adjusted to match active tasks
+                    marginLeft: { xs: 1, sm: 3.5 },
+                    marginRight: { xs: 1, sm: 3.5 },
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "space-between",
@@ -1883,9 +1902,9 @@ const Tasks: React.FC<TasksProps> = ({ sidebar }) => {
                     border: `2px solid ${darkenColor(tabColors[tabIdx % tabColors.length])}`,
                     boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
                     transform: isSelected 
-                      ? (window.innerWidth < 1200 ? 'scale(1.02)' : 'scale(1.025)') 
+                      ? (isCompactCards ? 'scale(1.02)' : 'scale(1.025)') 
                       : showHoverEffect 
-                        ? (window.innerWidth < 1200 ? 'scale(1.015)' : 'scale(1.02)') 
+                        ? (isCompactCards ? 'scale(1.015)' : 'scale(1.02)') 
                         : 'none',
                     transition: 'box-shadow 0.4s, border 0.25s, transform 0.48s',
                     zIndex: isSelected ? 2 : showHoverEffect ? 1.5 : 1,
@@ -1907,8 +1926,8 @@ const Tasks: React.FC<TasksProps> = ({ sidebar }) => {
                       animateBorder={false}
                     />
                     <Box>
-                      <Typography variant="h6" sx={{ color: "#343748", fontWeight: 550, textDecoration: "line-through" }}>{task.title}</Typography>
-                      <Box sx={{ width: '100%', maxWidth: '40vw', overflow: 'hidden' }}>
+                      <Typography variant="h6" sx={{ color: "#343748", fontWeight: 550, textDecoration: "line-through", display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: { xs: '58vw', sm: '40vw' }, lineHeight: 1.25 }}>{task.title}</Typography>
+                      <Box sx={{ width: '100%', maxWidth: isMobile ? '100%' : '40vw', overflow: 'hidden' }}>
                         <Typography
                           variant="body2"
                           sx={{
@@ -1951,19 +1970,36 @@ const Tasks: React.FC<TasksProps> = ({ sidebar }) => {
         <Box sx={{
           flex: 1,
           bgcolor: "#fff",
-          borderRadius: 2,
-          p: 3,
+          borderRadius: showMobileDetailsPanel ? 0 : 2,
+          p: { xs: 2, sm: 3 },
           boxShadow: 1,
-          minWidth: 340,
-          maxHeight: '90vh',
-          height: 'fit-content',
+          minWidth: { xs: 0, xl: 340 },
+          maxHeight: showMobileDetailsPanel ? 'calc(100dvh - 48px)' : '90vh',
+          height: showMobileDetailsPanel ? 'calc(100dvh - 48px)' : 'fit-content',
           overflowY: 'auto',
-          display: { xs: 'none', sm: 'none', md: 'none', lg: 'none', xl: 'block' },
-          '@media (min-width:1230px)': { display: 'block' },
-          '@media (max-width:1229px)': { display: 'none' },
+          display: showDesktopDetailsPanel || showMobileDetailsPanel ? 'block' : 'none',
+          position: showMobileDetailsPanel ? 'fixed' : 'relative',
+          top: showMobileDetailsPanel ? 48 : 'auto',
+          left: showMobileDetailsPanel ? 0 : 'auto',
+          right: showMobileDetailsPanel ? 0 : 'auto',
+          bottom: showMobileDetailsPanel ? 0 : 'auto',
+          width: showMobileDetailsPanel ? '100%' : 'auto',
+          zIndex: showMobileDetailsPanel ? 1400 : 'auto',
         }}>
           {selectedTask ? (
             <>
+              {showMobileDetailsPanel && (
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, position: 'sticky', top: 0, zIndex: 2, bgcolor: '#fff', pb: 1 }}>
+                  <IconButton onClick={() => setSelectedTask(null)} sx={{ mr: 1 }}>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M15 6L9 12L15 18" stroke="#343748" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </IconButton>
+                  <Typography sx={{ fontWeight: 550, color: '#343748', fontFamily: 'Nunito, Arial, sans-serif', fontSize: 18 }}>
+                    Task Details
+                  </Typography>
+                </Box>
+              )}
               {/* Removed Task Information header and Save button for auto-save */}
               <Box sx={{ mb: 2, position: 'relative', width: '100%', borderRadius: 2, overflow: 'hidden', aspectRatio: '16 / 9', background: '#E5E5E5' }}>
                 {selectedTask.imageUrl ? (
@@ -2499,7 +2535,8 @@ const Tasks: React.FC<TasksProps> = ({ sidebar }) => {
                   borderRadius: 2,
                   boxShadow: 24,
                   p: { xs: 2, sm: 4 },
-                  minWidth: 340,
+                  minWidth: 0,
+                  width: { xs: '92vw', sm: 'auto' },
                   maxWidth: '90vw',
                   outline: 'none',
                 }}>
@@ -2690,9 +2727,38 @@ const Tasks: React.FC<TasksProps> = ({ sidebar }) => {
           )}
         </Box>
       </Box>
+      {isMobile && !showMobileDetailsPanel && (
+        <Button
+          variant="contained"
+          onClick={() => {
+            setNewTask(t => ({
+              ...t,
+              property: selectedTab && selectedTab !== 'All Properties' ? selectedTab : ''
+            }));
+            setAddTaskOpen(true);
+          }}
+          sx={{
+            position: 'fixed',
+            right: 16,
+            bottom: 16,
+            zIndex: 1200,
+            borderRadius: 999,
+            px: 2.5,
+            py: 1,
+            bgcolor: '#89AE99',
+            color: '#fff',
+            fontWeight: 550,
+            textTransform: 'none',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.18)',
+            '&:hover': { bgcolor: '#7a9e8a' },
+          }}
+        >
+          + Add Task
+        </Button>
+      )}
       {/* Uncheck confirmation modal */}
       <Modal open={uncheckModalOpen} onClose={handleCancelUncheck} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <Box sx={{ bgcolor: '#fff',  borderRadius: 2, p: 3, minWidth: 420, maxWidth: '90vw', outline: 'none', boxShadow: 6 }}>
+        <Box sx={{ bgcolor: '#fff',  borderRadius: 2, p: 3, minWidth: 0, width: { xs: '92vw', sm: 'auto' }, maxWidth: '90vw', outline: 'none', boxShadow: 6 }}>
           <Typography variant="h6" sx={{ fontFamily: 'Nunito, Arial, sans-serif', fontWeight: 550, mb: 3, color: '#343748' }}>Uncheck Task</Typography>
           <Box sx={{ bgcolor: '#F6A94A', color: '#222',  borderRadius: 2, p: 2, mb: 3, fontSize: 18, fontWeight: 400 }}>
             Are you sure you want to uncheck this task?

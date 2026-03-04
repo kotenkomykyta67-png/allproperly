@@ -91,6 +91,8 @@ import { getNextUniqueTasks } from '../utils/taskRecurringHelpers';
 import { db } from "../services/firebase";
 import PhotoPicker from '../components/PhotoPicker';
 import { getStorage, ref, uploadBytes } from "firebase/storage";
+import EmptyState from '../components/common/EmptyState';
+import { PropertyOverviewSkeleton } from '../components/common/AppSkeletons';
 
 interface PropertyProps {
   id: string;
@@ -639,6 +641,8 @@ function Property({ id, onShowUpgrade, sidebar }: PropertyProps) {
   const [addItemOpen, setAddItemOpen] = useState(false);
   const [newItem, setNewItem] = useState({ type: '', brand: '', model: '', serial: '' });
   const [property, setProperty] = useState<PropertyData | null>(null);
+  const [isPropertyBootstrapping, setIsPropertyBootstrapping] = useState(true);
+  const [isPropertyFetching, setIsPropertyFetching] = useState(false);
   const [tabNames, setTabNames] = useState<string[]>([]);
   const [selectedTab, setSelectedTab] = useState<string>("");
   // Map of tabName to propertyId for quick lookup
@@ -878,79 +882,93 @@ function Property({ id, onShowUpgrade, sidebar }: PropertyProps) {
   useEffect(() => {
     // On mount, build tabNames and tabNameToPropertyId, and set selectedTab
     async function buildTabsAndSelect() {
-      const auth = getAuth();
-      const user = auth.currentUser;
-      if (!user) {
+      setIsPropertyBootstrapping(true);
+      try {
+        const auth = getAuth();
+        const user = auth.currentUser;
+        if (!user) {
+          setTabNames([]);
+          setTabNameToPropertyId({});
+          setSelectedTab("");
+          setProperty(null);
+          return;
+        }
+
+        const { getDocs, collection, doc, getDoc } = await import("firebase/firestore");
+        const allPropsSnap = await getDocs(collection(db, "properties"));
+        const tabNamesArr: string[] = [];
+        const tabNameToId: Record<string, string> = {};
+        const processedPropertyIds = new Set<string>();
+        let initialTab = "";
+        const initialPropertyId = id;
+        let foundTabForId = "";
+
+        allPropsSnap.forEach(docSnap => {
+          const data = docSnap.data();
+          // Skip if already processed this property
+          if (processedPropertyIds.has(docSnap.id)) return;
+          processedPropertyIds.add(docSnap.id);
+
+          const isOwner = data.ownerId === user.uid;
+          let tabName = data.type;
+
+          if (Array.isArray(data.sharedWith)) {
+            const entry = data.sharedWith.find((sw: any) => typeof sw === 'object' && sw.userId === user.uid);
+            if (entry && typeof entry === 'object' && entry.alias && entry.alias.trim()) {
+              // Use alias if it exists and is not empty
+              tabName = entry.alias;
+            }
+          }
+
+          if ((isOwner || (Array.isArray(data.sharedWith) && data.sharedWith.some((sw: any) => sw.userId === user.uid))) && tabName) {
+            if (!tabNamesArr.includes(tabName)) {
+              tabNamesArr.push(tabName);
+              tabNameToId[tabName] = docSnap.id;
+            }
+            if (docSnap.id === initialPropertyId) {
+              foundTabForId = tabName;
+            }
+          }
+        });
+
+        // Ensure 'Our Home' is always first if present
+        let orderedTypes = tabNamesArr;
+        const ourHomeIdx = orderedTypes.indexOf("Our Home");
+        if (ourHomeIdx > 0) {
+          orderedTypes = ["Our Home", ...orderedTypes.filter(t => t !== "Our Home")];
+        }
+        setTabNames(orderedTypes);
+        setTabNameToPropertyId(tabNameToId);
+
+        // Determine which tab to select
+        if (foundTabForId) {
+          initialTab = foundTabForId;
+        } else {
+          initialTab = sessionStorage.getItem('appTab') || "";
+          if (!initialTab || !orderedTypes.includes(initialTab)) {
+            initialTab = orderedTypes[0] || "";
+          }
+        }
+        setSelectedTab(initialTab);
+        sessionStorage.setItem('appTab', initialTab);
+
+        // If id prop is provided, fetch and set property immediately
+        if (initialPropertyId) {
+          const docRef = doc(db, "properties", initialPropertyId);
+          const docSnap = await getDoc(docRef);
+          if (docSnap.exists()) {
+            setProperty(docSnap.data() as PropertyData);
+            setCurrentPropertyId(initialPropertyId);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to bootstrap properties view:', error);
         setTabNames([]);
         setTabNameToPropertyId({});
         setSelectedTab("");
         setProperty(null);
-        return;
-      }
-      const { getDocs, collection, doc, getDoc } = await import("firebase/firestore");
-      const allPropsSnap = await getDocs(collection(db, "properties"));
-      const tabNamesArr: string[] = [];
-      const tabNameToId: Record<string, string> = {};
-      const processedPropertyIds = new Set<string>();
-      let initialTab = "";
-      let initialPropertyId = id;
-      let foundTabForId = "";
-      
-      allPropsSnap.forEach(docSnap => {
-        const data = docSnap.data();
-        // Skip if already processed this property
-        if (processedPropertyIds.has(docSnap.id)) return;
-        processedPropertyIds.add(docSnap.id);
-        
-        const isOwner = data.ownerId === user.uid;
-        let tabName = data.type;
-        
-        if (Array.isArray(data.sharedWith)) {
-          const entry = data.sharedWith.find((sw: any) => typeof sw === 'object' && sw.userId === user.uid);
-          if (entry && typeof entry === 'object' && entry.alias && entry.alias.trim()) {
-            // Use alias if it exists and is not empty
-            tabName = entry.alias;
-          }
-        }
-        
-        if ((isOwner || (Array.isArray(data.sharedWith) && data.sharedWith.some((sw: any) => sw.userId === user.uid))) && tabName) {
-          if (!tabNamesArr.includes(tabName)) {
-            tabNamesArr.push(tabName);
-            tabNameToId[tabName] = docSnap.id;
-          }
-          if (docSnap.id === initialPropertyId) {
-            foundTabForId = tabName;
-          }
-        }
-      });
-      // Ensure 'Our Home' is always first if present
-      let orderedTypes = tabNamesArr;
-      const ourHomeIdx = orderedTypes.indexOf("Our Home");
-      if (ourHomeIdx > 0) {
-        orderedTypes = ["Our Home", ...orderedTypes.filter(t => t !== "Our Home")];
-      }
-      setTabNames(orderedTypes);
-      setTabNameToPropertyId(tabNameToId);
-
-      // Determine which tab to select
-      if (foundTabForId) {
-        initialTab = foundTabForId;
-      } else {
-        initialTab = sessionStorage.getItem('appTab') || "";
-        if (!initialTab || !orderedTypes.includes(initialTab)) {
-          initialTab = orderedTypes[0] || "";
-        }
-      }
-      setSelectedTab(initialTab);
-      sessionStorage.setItem('appTab', initialTab);
-      // If id prop is provided, fetch and set property immediately
-      if (initialPropertyId) {
-        const docRef = doc(db, "properties", initialPropertyId);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          setProperty(docSnap.data() as PropertyData);
-          setCurrentPropertyId(initialPropertyId);
-        }
+      } finally {
+        setIsPropertyBootstrapping(false);
       }
     }
     buildTabsAndSelect();
@@ -1000,29 +1018,42 @@ function Property({ id, onShowUpgrade, sidebar }: PropertyProps) {
       if (!selectedTab) {
         setProperty(null);
         setCurrentPropertyId("");
+        setIsPropertyFetching(false);
         return;
       }
       const propertyId = tabNameToPropertyId[selectedTab];
       if (!propertyId) {
         setProperty(null);
         setCurrentPropertyId("");
+        setIsPropertyFetching(false);
         return;
       }
-      const { doc, getDoc } = await import("firebase/firestore");
-      const docRef = doc(db, "properties", propertyId);
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        setProperty(docSnap.data() as PropertyData);
-        setCurrentPropertyId(propertyId);
-      } else {
+      setIsPropertyFetching(true);
+      try {
+        const { doc, getDoc } = await import("firebase/firestore");
+        const docRef = doc(db, "properties", propertyId);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          setProperty(docSnap.data() as PropertyData);
+          setCurrentPropertyId(propertyId);
+        } else {
+          setProperty(null);
+          setCurrentPropertyId("");
+        }
+      } catch (error) {
+        console.error('Failed to fetch selected property:', error);
         setProperty(null);
         setCurrentPropertyId("");
+      } finally {
+        setIsPropertyFetching(false);
       }
     }
 
     if (selectedTab) {
       sessionStorage.setItem('appTab', selectedTab);
       updatePropertyForTab();
+    } else {
+      setIsPropertyFetching(false);
     }
   }, [selectedTab, tabNameToPropertyId]);
 
@@ -3195,6 +3226,8 @@ function Property({ id, onShowUpgrade, sidebar }: PropertyProps) {
   const isNegative = diff !== null && diff < 0;
   const buttonColor = isNegative ? '#E57373' : '#435569';
   const arrow = isNegative ? '↓' : '↑';
+  const showPropertyLoadingOverlay = !property && (isPropertyBootstrapping || isPropertyFetching);
+  const showPropertyEmptyOverlay = !property && !showPropertyLoadingOverlay;
 
   return (
     <>
@@ -3227,7 +3260,7 @@ function Property({ id, onShowUpgrade, sidebar }: PropertyProps) {
           setAddPropertyOpen(false);
         }}
       />
-      <Box sx={{ bgcolor: '#F9F9F9', position: 'relative', flexGrow: 1, px: { xs: 1, sm: 2, md: 4 }, pt: { xs: 2, sm: 3, md: 4 }, pb: { xs: 2, sm: 3, md: 4 }, overflowY: 'auto', overflowX: 'hidden', ml: sidebar ? '75px' : '18vw', maxHeight: '100vh', width: sidebar ? 'calc(100vw - 75px)' : 'calc(100vw - 18vw)' }}>
+      <Box sx={{ bgcolor: '#F9F9F9', position: 'relative', flexGrow: 1, px: { xs: 1.5, sm: 2, md: 3 }, pt: { xs: 2, sm: 2.5, md: 3 }, pb: { xs: 2, sm: 3, md: 4 }, overflowY: 'auto', overflowX: 'hidden', ml: { xs: 0, md: 'var(--app-sidebar-width, 72px)' }, minHeight: '100dvh', width: { xs: '100%', md: 'calc(100% - var(--app-sidebar-width, 72px))' }, maxWidth: '100%', minWidth: 0 }}>
         {(isRealPM || isFamilyMember) ? (
           <EditPropertyModalComponent
             open={editOpen}
@@ -3261,62 +3294,30 @@ function Property({ id, onShowUpgrade, sidebar }: PropertyProps) {
         )}
         {ForecastingModal}
         {/* Overlay while property data is loading to avoid partial/flash render */}
-        {!property && (
-          <Box sx={{ position: 'absolute', inset: 0, bgcolor: '#F9F9F9', zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <div style={{ position: 'relative', width: 80, height: 80, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-              <svg width="80" height="80" viewBox="0 0 80 80" style={{ position: 'absolute', top: 0, left: 0, animation: 'spinRotate 3s linear infinite' }}>
-                <circle
-                  cx="40"
-                  cy="40"
-                  r="34"
-                  strokeWidth="6"
-                  fill="none"
-                  strokeLinecap="round"
-                  style={{
-                    transformOrigin: 'center',
-                    animation: 'spinDash 2.5s ease-in-out infinite, spinColor 5s ease-in-out infinite'
-                  }}
-                />
-                <style>{`
-                  @keyframes spinRotate {
-                    0% { transform: rotate(0deg); }
-                    100% { transform: rotate(360deg); }
-                  }
-                  @keyframes spinDash {
-                    0% {
-                      stroke-dasharray: 1, 214;
-                      stroke-dashoffset: 0;
-                    }
-                    50% {
-                      stroke-dasharray: 170, 214;
-                      stroke-dashoffset: -42;
-                    }
-                    100% {
-                      stroke-dasharray: 1, 214;
-                      stroke-dashoffset: -214;
-                    }
-                  }
-                  @keyframes spinColor {
-                    0%, 49% {
-                      stroke: #89AE99;
-                    }
-                    50%, 99% {
-                      stroke: #6A7F91;
-                    }
-                    100% {
-                      stroke: #89AE99;
-                    }
-                  }
-                `}</style>
-              </svg>
-            </div>
+        {showPropertyLoadingOverlay && (
+          <Box sx={{ position: 'absolute', inset: 0, bgcolor: '#F9F9F9', zIndex: 60, p: { xs: 1.5, sm: 2, md: 3 }, overflow: 'hidden' }}>
+            <PropertyOverviewSkeleton />
+          </Box>
+        )}
+        {showPropertyEmptyOverlay && (
+          <Box sx={{ position: 'absolute', inset: 0, bgcolor: '#F9F9F9', zIndex: 60, p: { xs: 1.5, sm: 2, md: 3 }, overflow: 'hidden' }}>
+            <Paper sx={{ borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.08)', height: '100%' }}>
+              <EmptyState
+                title="No Properties Added"
+                description="Add a property to begin managing finances and maintenance."
+                iconType="property"
+                actionLabel="+ Add Property"
+                onAction={() => setAddPropertyOpen(true)}
+                minHeight="100%"
+              />
+            </Paper>
           </Box>
         )}
       {/* Top Navigation Bar */}
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1.5 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, minWidth: 0, flexWrap: 'wrap' }}>
           <Typography variant="h5" sx={{ fontSize: 18, fontWeight: 550, color: '#222', fontFamily: 'Nunito, Arial, sans-serif' }}>Properties</Typography>
-          <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', mt: 1, overflowX: 'auto', maxWidth: '100%', scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' } }}>
             {tabNames.map((tab) => (
               <Box
                 key={tab}
@@ -3371,7 +3372,7 @@ function Property({ id, onShowUpgrade, sidebar }: PropertyProps) {
             ))}
           </Box>
         </Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, flexWrap: 'wrap', width: { xs: '100%', md: 'auto' }, justifyContent: { xs: 'flex-start', md: 'flex-end' } }}>
           <Button
             variant="outlined"
             sx={{
@@ -3385,7 +3386,8 @@ function Property({ id, onShowUpgrade, sidebar }: PropertyProps) {
               px: 2,
               py: 0.5,
               fontSize: 16,
-              display: { xs: 'none', md: 'inline-flex' },
+              display: 'inline-flex',
+              width: { xs: '100%', sm: 'auto' },
               '&:hover': { background: '#f5f5f5', borderColor: '#B0B0B0' }
             }}
             onClick={() => setShowFilterModal(true)}
@@ -3417,7 +3419,8 @@ function Property({ id, onShowUpgrade, sidebar }: PropertyProps) {
               px: 1.5,
               py: 0.7,
               fontSize: 15,
-              display: { xs: 'none', md: 'inline-flex' }
+              display: 'inline-flex',
+              width: { xs: '100%', sm: 'auto' }
             }}
             onClick={async () => {
               const auth = getAuth();
@@ -3485,7 +3488,7 @@ function Property({ id, onShowUpgrade, sidebar }: PropertyProps) {
         {/* Property Details Section - Flexbox Two Columns */}
         <Box sx={{
            display: 'flex',
-           flexDirection: { xs: 'column', md: 'row' },
+           flexDirection: { xs: 'column', lg: 'row' },
            gap: 1.5,
            width: '100%',
            alignItems: 'stretch',
@@ -3618,7 +3621,7 @@ function Property({ id, onShowUpgrade, sidebar }: PropertyProps) {
           </Box>
           {/* Right Column - Stacked Cards, Flex: 1 for equal height */}
           {(!isSharedMember && !isRealPM) ? (          
-            <Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1.5, height: leftHeight ? `${leftHeight}px` : '100%' }}>
+            <Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1.5, height: { xs: 'auto', lg: leftHeight ? `${leftHeight}px` : '100%' } }}>
               <Paper sx={{ flex: 1, height: '100%', p: { xs: 2, sm: 3 }, borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.13)', background: '#fff', display: 'flex', flexDirection: 'row', alignItems: { xs: 'flex-start', sm: 'center' }, justifyContent: 'space-between', minHeight: 120, border: 'none', fontFamily: 'Nunito, Arial, sans-serif', overflow: 'hidden', position: 'relative' }}>
                 <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', px: 2.5, py: 1.5, overflowY: 'auto' }}>
                   <Typography sx={{ fontWeight: 550, color: '#4A4A4A', mb: 1, fontFamily: 'Nunito, Arial, sans-serif', fontSize: { xs: 12, sm: 13, md: 16, lg: 20, xl: 20 }, '@media (max-width:1350px)': { fontSize: 18 } }}>
@@ -3790,7 +3793,7 @@ function Property({ id, onShowUpgrade, sidebar }: PropertyProps) {
                 </Box>
               </Paper>
             </Box>) : (
-            <Box sx={{ flex: 1, minWidth: 0, display: 'flex', gap: 2, height: leftHeight ? `${leftHeight}px` : '100%' }}>
+            <Box sx={{ flex: 1, minWidth: 0, display: 'flex', gap: 2, height: { xs: 'auto', lg: leftHeight ? `${leftHeight}px` : '100%' } }}>
               <Paper sx={{ p: { xs: 2, sm: 3 },  borderRadius: 2, flex: 1, display: 'flex', flexDirection: 'column', boxShadow: '0 2px 8px rgba(0,0,0,0.13)', gap: 1 }}>
               <Typography variant="h5" fontWeight={550} mb={-1} sx={{ 
                 textAlign: 'left',
@@ -3850,8 +3853,14 @@ function Property({ id, onShowUpgrade, sidebar }: PropertyProps) {
                     {myAssignedTasks.length === 0 ? (
                       <tr>
                         <td colSpan={3} style={{ padding: 0, border: 'none' }}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', borderRadius: 2, background: '#fff', p: '12px 18px', fontWeight: 550, color: '#888' }}>
-                            No Assigned tasks.
+                          <Box sx={{ borderRadius: 2, background: '#fff' }}>
+                            <EmptyState
+                              title="No Assigned Tasks"
+                              description="Assigned tasks for this property will appear here."
+                              iconType="task"
+                              compact
+                              minHeight={130}
+                            />
                           </Box>
                         </td>
                       </tr>
@@ -4456,9 +4465,13 @@ function Property({ id, onShowUpgrade, sidebar }: PropertyProps) {
                 </Dialog>
               </>
             ) : (
-              <Typography variant="body2" color="text.secondary" sx={{ fontFamily: 'Nunito, Arial, sans-serif', mt: 2 }}>
-                No inventory items found.
-              </Typography>
+              <EmptyState
+                title="No Inventory Items"
+                description="Add inventory items to keep track of important home equipment."
+                iconType="property"
+                compact
+                minHeight={170}
+              />
             )}
           </Box>
         </Paper>
@@ -4573,9 +4586,13 @@ function Property({ id, onShowUpgrade, sidebar }: PropertyProps) {
                   </Dialog>
                 </>
               ) : (
-                <Typography variant="body2" color="text.secondary" sx={{ fontFamily: 'Nunito, Arial, sans-serif', mt: 2 }}>
-                  No utilities found.
-                </Typography>
+                <EmptyState
+                  title="No Utilities Added"
+                  description="Add utility providers to keep your billing and account details in one place."
+                  iconType="default"
+                  compact
+                  minHeight={170}
+                />
               )}
             </Paper>
           </Box>

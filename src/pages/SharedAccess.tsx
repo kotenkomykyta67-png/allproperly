@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Box, Typography, Avatar, Button, Modal, TextField, Switch, FormControlLabel, IconButton } from "@mui/material";
 import CloseIcon from '@mui/icons-material/Close';
+import EmptyState from "../components/common/EmptyState";
 import { getAuth } from "firebase/auth";
 import { db } from "../services/firebase";
 import { collection, getDocs, query, where, addDoc, updateDoc, doc, deleteDoc, getDoc } from "firebase/firestore";
@@ -11,6 +12,7 @@ interface SharedAccessProps {
 }
 
 const SharedAccess: React.FC<SharedAccessProps> = ({ setting, sidebar }) => {
+  const sidebarWidthFallback = sidebar ? '72px' : 'clamp(220px, 18vw, 300px)';
   const [friendIsPropertyManager, setFriendIsPropertyManager] = useState(false);
   // State for member details modal
   const [memberDetailsOpen, setMemberDetailsOpen] = useState(false);
@@ -238,8 +240,19 @@ const SharedAccess: React.FC<SharedAccessProps> = ({ setting, sidebar }) => {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
   };
 
-  // Modal box style for both modals
-  const modalBoxSx = { bgcolor: '#fff', borderRadius: 2, p: 3, minWidth: 400, boxShadow: 6, outline: 'none', width: '55vw' };
+  // Modal box style for invitation modals
+  const modalBoxSx = {
+    bgcolor: '#fff',
+    borderRadius: { xs: 0, sm: 2 },
+    p: { xs: 2, sm: 3 },
+    boxShadow: 6,
+    outline: 'none',
+    width: { xs: '100vw', sm: '70vw', md: '55vw' },
+    maxWidth: 760,
+    maxHeight: { xs: '100dvh', sm: '90dvh' },
+    height: { xs: '100dvh', sm: 'auto' },
+    overflowY: 'auto',
+  };
 
   const [sendingInvite, setSendingInvite] = useState(false);
   // Separate pending invites for household and friends
@@ -284,10 +297,29 @@ const SharedAccess: React.FC<SharedAccessProps> = ({ setting, sidebar }) => {
   }, []);
 
   return (
-    <Box sx={{ p: !setting ? 3 : 0, bgcolor: "#F9F9F9", minHeight: "100vh", ml: sidebar ? '75px' : !setting ? '18vw' : 0, width: sidebar ? 'calc(100vw - 75px)' : !setting ? 'calc(100vw - 18vw)' : 'calc(100vw - 18vw - 390px)', display: 'flex', flexDirection: 'column', gap: !setting ? 3 : 1.2, overflowX: 'hidden' }}>
+    <Box
+      sx={{
+        p: !setting ? { xs: 1.5, sm: 2, md: 3 } : 0,
+        bgcolor: "#F9F9F9",
+        minHeight: "100dvh",
+        ml: { xs: 0, md: !setting ? `var(--app-sidebar-width, ${sidebarWidthFallback})` : 0 },
+        width: {
+          xs: '100%',
+          md: !setting
+            ? `calc(100% - var(--app-sidebar-width, ${sidebarWidthFallback}))`
+            : '100%',
+        },
+        maxWidth: '100%',
+        minWidth: 0,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: !setting ? 3 : 1.2,
+        overflowX: 'hidden',
+      }}
+    >
       {/* Remove Member Confirm Modal */}
       <Modal open={confirmOpen} onClose={() => setConfirmOpen(false)} aria-labelledby="remove-member-modal" sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <Box sx={{ bgcolor: '#fff',  borderRadius: 2, p: 3, minWidth: 400, width: '35vw', boxShadow: 6, outline: 'none' }}>
+        <Box sx={{ bgcolor: '#fff', borderRadius: { xs: 0, sm: 2 }, p: { xs: 2, sm: 3 }, minWidth: 0, width: { xs: '100vw', sm: '92vw', md: '35vw' }, maxWidth: { xs: '100vw', sm: 560 }, maxHeight: { xs: '100dvh', sm: '90dvh' }, height: { xs: '100dvh', sm: 'auto' }, overflowY: 'auto', boxShadow: 6, outline: 'none' }}>
           <Typography variant="h6" sx={{ fontWeight: 550, mb: 2, fontSize: 19, color: '#232B36' }}>Remove Member</Typography>
           <Box sx={{ bgcolor: '#F6A94A', p: 2.5, color: '#222', borderRadius: 1, mb: 3, fontSize: 18, fontWeight: 400, lineHeight: 1.35 }}>
             Are you sure you want to remove this member?
@@ -312,7 +344,7 @@ const SharedAccess: React.FC<SharedAccessProps> = ({ setting, sidebar }) => {
       </Modal>
       { !setting ? <Typography variant="h5" sx={{ fontWeight: 550, fontSize: 18, color: '#222', fontFamily: 'Nunito, Arial, sans-serif', pt: 1 }}>Shared Access</Typography> : null}
       {/* Household Members Card */}
-      <Box sx={{ bgcolor: '#fff', borderRadius: 2, p: 4.5, boxShadow: '0 2px 16px rgba(0,0,0,0.06)', border: '1px solid #E0E0E0', mb: !setting ? -1.8 : 0 }}>
+      <Box sx={{ bgcolor: '#fff', borderRadius: 2, p: { xs: 2, sm: 3, md: 4.5 }, boxShadow: '0 2px 16px rgba(0,0,0,0.06)', border: '1px solid #E0E0E0', mb: !setting ? -1.8 : 0 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: !setting ? 2 : 1 }}>
           <Typography sx={{ fontFamily: 'Nunito, Arial, sans-serif', fontSize: 16, fontWeight: 550, color: '#343748' }}>Household Members</Typography>
           <Typography
@@ -453,7 +485,7 @@ const SharedAccess: React.FC<SharedAccessProps> = ({ setting, sidebar }) => {
       )}
       </Box>
       {/* Trusted Friend Card */}
-      <Box sx={{ bgcolor: '#fff',  borderRadius: 2, p: 4.5, boxShadow: '0 2px 16px rgba(0,0,0,0.06)', border: '1px solid #E0E0E0' }}>
+      <Box sx={{ bgcolor: '#fff', borderRadius: 2, p: { xs: 2, sm: 3, md: 4.5 }, boxShadow: '0 2px 16px rgba(0,0,0,0.06)', border: '1px solid #E0E0E0' }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2  }}>
         <Typography sx={{ fontFamily: 'Nunito, Arial, sans-serif', fontSize: 16, fontWeight: 550, color: '#343748' }}>Trusted Friend</Typography>
         <Typography
@@ -624,7 +656,7 @@ const SharedAccess: React.FC<SharedAccessProps> = ({ setting, sidebar }) => {
           {/* Property selection toggles for Trusted Friend modal */}
           <Box sx={{
             display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
+            gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
             gap: 1.5,
             mb: 1,
             mt: 0,
@@ -634,7 +666,15 @@ const SharedAccess: React.FC<SharedAccessProps> = ({ setting, sidebar }) => {
             justifyItems: 'start',
           }}>
             {propertyNames.length === 0 ? (
-              <Typography sx={{ fontFamily: 'Nunito, Arial, sans-serif', color: '#888', fontSize: 15, width: '100%', textAlign: 'center' }}>No properties found</Typography>
+              <Box sx={{ gridColumn: '1 / -1', width: '100%' }}>
+                <EmptyState
+                  iconType="property"
+                  compact
+                  title="No Properties Added"
+                  description="Add a property first to grant access."
+                  minHeight={160}
+                />
+              </Box>
             ) : (
               propertyNames.map((prop) => {
                 if (prop === 'All Properties') {
@@ -777,7 +817,7 @@ const SharedAccess: React.FC<SharedAccessProps> = ({ setting, sidebar }) => {
               })
             )}
           </Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', mt: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', mt: 2, position: { xs: 'sticky', sm: 'static' }, bottom: 0, bgcolor: '#fff', pt: { xs: 1.5, sm: 0 } }}>
             <Button
               variant="contained"
               sx={{
@@ -1054,7 +1094,7 @@ const SharedAccess: React.FC<SharedAccessProps> = ({ setting, sidebar }) => {
 
       {/* Member Details Modal (outside map) */}
       <Modal open={memberDetailsOpen} onClose={() => setMemberDetailsOpen(false)} aria-labelledby="member-details-modal" sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <Box sx={{ bgcolor: '#fff', borderRadius: 2, p: 4, minWidth: 400, maxWidth: 500, boxShadow: 6, outline: 'none', width: '90vw', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+        <Box sx={{ bgcolor: '#fff', borderRadius: { xs: 0, sm: 2 }, p: { xs: 2, sm: 4 }, minWidth: 0, maxWidth: 500, boxShadow: 6, outline: 'none', width: { xs: '100vw', sm: '90vw' }, maxHeight: { xs: '100dvh', sm: '90dvh' }, height: { xs: '100dvh', sm: 'auto' }, overflowY: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, width: '100%' }}>
             <Avatar src={selectedMember?.avatar} sx={{ width: 64, height: 64 }} />
             <Box>
@@ -1111,7 +1151,7 @@ const SharedAccess: React.FC<SharedAccessProps> = ({ setting, sidebar }) => {
             {propertyNames.length > 0 && (
               <Box sx={{
                 display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
+                gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
                 gap: 2,
                 width: '100%',
                 mb: 2,
@@ -1249,7 +1289,7 @@ const SharedAccess: React.FC<SharedAccessProps> = ({ setting, sidebar }) => {
       
       {/* Invite Member Modal */}
       <Modal open={inviteOpen} onClose={handleCloseInvite} aria-labelledby="invite-member-modal" sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <Box sx={{ bgcolor: '#fff',  borderRadius: 2, p: 3, minWidth: 400, width: '55vw', boxShadow: 6, outline: 'none' }}>
+        <Box sx={{ bgcolor: '#fff', borderRadius: { xs: 0, sm: 2 }, p: { xs: 2, sm: 3 }, minWidth: 0, width: { xs: '100vw', sm: '70vw', md: '55vw' }, maxWidth: 760, maxHeight: { xs: '100dvh', sm: '90dvh' }, height: { xs: '100dvh', sm: 'auto' }, overflowY: 'auto', boxShadow: 6, outline: 'none' }}>
           <Typography variant="h6" sx={{ fontFamily: 'Nunito, Arial, sans-serif', fontWeight: 550, mb: 2, fontSize: 19, color: '#232B36' }}>Invite Member to Household</Typography>
           <Box sx={{ fontFamily: 'Nunito, Arial, sans-serif', bgcolor: '#F6A94A', color: '#222', borderRadius: 1, p: '13px 16px', mb: 3, fontSize: 17, fontWeight: 400, lineHeight: 1.35 }}>
             IMPORTANT: Members you invite will have full access to your household’s data. You should only invite people you trust.
@@ -1321,7 +1361,7 @@ const SharedAccess: React.FC<SharedAccessProps> = ({ setting, sidebar }) => {
           {/* Property selection pills */}
           <Box sx={{
             display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
+            gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
             gap: 1.5,
             mb: 1,
             mt: 0,
@@ -1331,7 +1371,15 @@ const SharedAccess: React.FC<SharedAccessProps> = ({ setting, sidebar }) => {
             justifyItems: 'start',
           }}>
             {propertyNames.length === 0 ? (
-              <Typography sx={{ color: '#888', fontSize: 15, width: '100%', textAlign: 'center' }}>No properties found</Typography>
+              <Box sx={{ gridColumn: '1 / -1', width: '100%' }}>
+                <EmptyState
+                  iconType="property"
+                  compact
+                  title="No Properties Added"
+                  description="Add a property first to invite members."
+                  minHeight={160}
+                />
+              </Box>
             ) : (
               propertyNames.map((prop) => {
                 if (prop === 'All Properties') {
@@ -1469,7 +1517,7 @@ const SharedAccess: React.FC<SharedAccessProps> = ({ setting, sidebar }) => {
               })
             )}
           </Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', mt: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', mt: 2, position: { xs: 'sticky', sm: 'static' }, bottom: 0, bgcolor: '#fff', pt: { xs: 1.5, sm: 0 } }}>
             <Button
               variant="contained"
               sx={{

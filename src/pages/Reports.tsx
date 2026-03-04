@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from "react";
-import { Box, Typography, TextField, Button, Avatar, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, InputAdornment, Skeleton, Tooltip } from "@mui/material";
+import { Box, Typography, TextField, Button, Avatar, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, InputAdornment, Skeleton, Tooltip, useMediaQuery, useTheme } from "@mui/material";
 import SearchIcon from '@mui/icons-material/Search';
+import EmptyState from "../components/common/EmptyState";
 import { getAuth } from "firebase/auth";
 import { db } from "../services/firebase";
 import { getDocs, collection, query, where, doc, getDoc } from "firebase/firestore";
@@ -14,6 +15,9 @@ const Reports: React.FC<ReportsProps> = ({ sidebar }) => {
         const [thisMonthActive, setThisMonthActive] = useState(false);
       const [searchValue, setSearchValue] = useState("");
     const [selectedPhotoIdx, setSelectedPhotoIdx] = useState<number | null>(null);
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const sidebarWidthFallback = sidebar ? '72px' : 'clamp(220px, 18vw, 300px)';
   const [propertyTypes, setPropertyTypes] = React.useState<string[]>([]);
   const [selectedTab, setSelectedTab] = React.useState<string>(() => {
     const saved = sessionStorage.getItem('appTab');
@@ -206,11 +210,25 @@ const Reports: React.FC<ReportsProps> = ({ sidebar }) => {
   // };
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", gap: 1, p: 3, bgcolor: "#F9F9F9", minHeight: 0, maxHeight: "100vh", ml: sidebar ? '75px' : '18vw', width: sidebar ? "calc(100vw - 75px)" : "calc(100vw - 18vw)", overflowX: 'hidden' }}>
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        gap: 1.5,
+        p: { xs: 1.5, sm: 2, md: 3 },
+        bgcolor: "#F9F9F9",
+        height: "100dvh",
+        ml: { xs: 0, md: `var(--app-sidebar-width, ${sidebarWidthFallback})` },
+        width: { xs: '100%', md: `calc(100% - var(--app-sidebar-width, ${sidebarWidthFallback}))` },
+        maxWidth: '100%',
+        minWidth: 0,
+        overflow: 'hidden',
+      }}
+    >
       {/* Top Tabs - dynamic property types */}
-      <Box sx={{ display: "flex", alignItems: "center", gap: 3, mb: 3 }}>
+      <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2, flexWrap: 'wrap' }}>
         <Typography variant="h5" sx={{ fontSize: 18, fontWeight: 550, color: '#222', fontFamily: 'Nunito, Arial, sans-serif' }}>Reports</Typography>
-        <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', mt: 1, overflowX: 'auto', maxWidth: '100%', scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' } }}>
           {propertyTypes.map((type) => (
             <Box
               key={type}
@@ -273,7 +291,9 @@ const Reports: React.FC<ReportsProps> = ({ sidebar }) => {
             px: 2,
             py: 1,
             fontSize: 14,
-            display: { xs: 'none', md: 'inline-flex' },
+            display: 'inline-flex',
+            width: { xs: '100%', sm: 'auto' },
+            mt: { xs: 1, sm: 0 },
             boxShadow: thisMonthActive ? '0 2px 8px rgba(71,85,103,0.10)' : 'none',
             transition: 'all 0.2s',
             '&:hover': {
@@ -339,9 +359,22 @@ const Reports: React.FC<ReportsProps> = ({ sidebar }) => {
         </Button> */}
       </Box>
       {/* Search and Actions - Card style */}
-      <Box sx={{ bgcolor: '#fff', borderRadius: 2, boxShadow: '0 2px 16px rgba(0,0,0,0.06)', border: '1px solid #E0E0E0', p: 2.2, display: 'flex', alignItems: 'center' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', flexGrow: 1 }}>
-          <Box sx={{ width: '100%', display: 'flex', alignItems: 'center' }}>
+      <Box
+        sx={{
+          bgcolor: '#fff',
+          borderRadius: 2,
+          boxShadow: '0 2px 16px rgba(0,0,0,0.06)',
+          border: '1px solid #E0E0E0',
+          p: 2.2,
+          display: 'flex',
+          alignItems: { xs: 'stretch', sm: 'center' },
+          flexDirection: { xs: 'column', sm: 'row' },
+          gap: { xs: 1.5, sm: 0 },
+          minWidth: 0,
+        }}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'center', flexGrow: 1, minWidth: 0, width: '100%' }}>
+          <Box sx={{ width: '100%', display: 'flex', alignItems: 'center', minWidth: 0 }}>
             <TextField
               variant="outlined"
               size="small"
@@ -367,7 +400,7 @@ const Reports: React.FC<ReportsProps> = ({ sidebar }) => {
             />
             {/* Center avatars between search and download button if present */}
             {sharedMembers.length > 0 ? (
-              <Box sx={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', width: 72, minWidth: 56, mx: 1 }}>
+              <Box sx={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', width: { xs: 'auto', sm: 72 }, minWidth: 0, mx: 1 }}>
                 {sharedMembers.slice(0, 3).map((member, idx) => {
                   const isSelected = selectedPhotoIdx === idx;
                   return (
@@ -394,11 +427,11 @@ const Reports: React.FC<ReportsProps> = ({ sidebar }) => {
             )}
           </Box>
         </Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', minWidth: 120 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: { xs: 'stretch', sm: 'flex-end' }, width: { xs: '100%', sm: 'auto' }, minWidth: 0 }}>
           <Button
             variant="outlined"
             // sx={{ fontFamily: 'Nunito, Arial, sans-serif', '&:hover': { background: '#f5f5f5', borderColor: '#B0B0B0' }, borderRadius: 2, textTransform: "none", fontWeight: 400, bgcolor: '#fff', color: '#1F1F1F', borderColor: '#E0E0E0', display: 'flex', alignItems: 'center', gap: 1 }}
-            sx={{ ":hover": {borderColor: '#222'}, bgcolor: '#fff', color: '#343748', fontWeight: 400, fontFamily: 'Nunito, Arial, sans-serif', textTransform: 'none', borderColor: '#e0e0e0', px: { xs: 1, sm: 2 }, py: { xs: 0.5, sm: 1 }, fontSize: { xs: 12, sm: 14 }, borderRadius: 2, mt: { xs: 1, sm: 0 } }}
+            sx={{ ":hover": {borderColor: '#222'}, bgcolor: '#fff', color: '#343748', fontWeight: 400, fontFamily: 'Nunito, Arial, sans-serif', textTransform: 'none', borderColor: '#e0e0e0', px: { xs: 1, sm: 2 }, py: { xs: 0.5, sm: 1 }, fontSize: { xs: 12, sm: 14 }, borderRadius: 2, mt: { xs: 0, sm: 0 }, width: { xs: '100%', sm: 'auto' }, justifyContent: 'center' }}
             disabled={isFilteredEmpty}
           >
             <span style={{ display: 'flex', alignItems: 'center', marginRight: 10 }}>
@@ -413,26 +446,38 @@ const Reports: React.FC<ReportsProps> = ({ sidebar }) => {
         </Box>
       </Box>
       {/* Table with scroll and sticky header */}
-      <TableContainer component={Paper} sx={{ height: '100%', borderRadius: 2, boxShadow: '0 2px 16px rgba(0,0,0,0.06)', border: '1px solid #E0E0E0', bgcolor: '#fff', minHeight: 400, overflowY: 'auto', scrollbarWidth: 'thin', mb: 1, '&::-webkit-scrollbar': { width: 8 }, '&::-webkit-scrollbar-thumb': { background: '#E0E0E0', borderRadius: 2 } }}>
-        <Table stickyHeader>
+      <TableContainer component={Paper} sx={{ height: '100%', borderRadius: 2, boxShadow: '0 2px 16px rgba(0,0,0,0.06)', border: '1px solid #E0E0E0', bgcolor: '#fff', minHeight: 280, overflowY: 'auto', overflowX: 'auto', scrollbarWidth: 'thin', mb: 1, '&::-webkit-scrollbar': { width: 8, height: 8 }, '&::-webkit-scrollbar-thumb': { background: '#E0E0E0', borderRadius: 2 } }}>
+        <Table stickyHeader sx={{ minWidth: isMobile ? 640 : 'auto' }}>
           <TableHead>
             <TableRow>
-              <TableCell sx={{ width: '45%', minWidth: 120, fontFamily: 'Nunito, Arial, sans-serif', fontWeight: 400, fontSize: 16, color: '#343748', borderBottom: '2px solid #E0E0E0', background: '#fff', position: 'sticky', top: 0, zIndex: 2 }}>Task</TableCell>
-              <TableCell sx={{ width: '15%', minWidth: 60, fontFamily: 'Nunito, Arial, sans-serif', fontWeight: 400, fontSize: 16, color: '#343748', borderBottom: '2px solid #E0E0E0', background: '#fff', position: 'sticky', top: 0, zIndex: 2 }}>Property</TableCell>
-              <TableCell sx={{ width: '20%', minWidth: 90, fontFamily: 'Nunito, Arial, sans-serif', fontWeight: 400, fontSize: 16, color: '#343748', borderBottom: '2px solid #E0E0E0', background: '#fff', position: 'sticky', top: 0, zIndex: 2 }}>Date Completed</TableCell>
-              <TableCell sx={{ width: '20%', minWidth: 100, fontFamily: 'Nunito, Arial, sans-serif', fontWeight: 400, fontSize: 16, color: '#343748', borderBottom: '2px solid #E0E0E0', background: '#fff', position: 'sticky', top: 0, zIndex: 2 }}>Completed by</TableCell>
+              <TableCell sx={{ width: '45%', minWidth: 180, fontFamily: 'Nunito, Arial, sans-serif', fontWeight: 400, fontSize: { xs: 14, md: 16 }, color: '#343748', borderBottom: '2px solid #E0E0E0', background: '#fff', position: 'sticky', top: 0, zIndex: 2 }}>Task</TableCell>
+              <TableCell sx={{ width: '15%', minWidth: 100, fontFamily: 'Nunito, Arial, sans-serif', fontWeight: 400, fontSize: { xs: 14, md: 16 }, color: '#343748', borderBottom: '2px solid #E0E0E0', background: '#fff', position: 'sticky', top: 0, zIndex: 2 }}>Property</TableCell>
+              <TableCell sx={{ width: '20%', minWidth: 140, fontFamily: 'Nunito, Arial, sans-serif', fontWeight: 400, fontSize: { xs: 14, md: 16 }, color: '#343748', borderBottom: '2px solid #E0E0E0', background: '#fff', position: 'sticky', top: 0, zIndex: 2 }}>Date Completed</TableCell>
+              <TableCell sx={{ width: '20%', minWidth: 140, fontFamily: 'Nunito, Arial, sans-serif', fontWeight: 400, fontSize: { xs: 14, md: 16 }, color: '#343748', borderBottom: '2px solid #E0E0E0', background: '#fff', position: 'sticky', top: 0, zIndex: 2 }}>Completed by</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {loading ? (
               [...Array(6)].map((_, idx) => (
                 <TableRow key={idx}>
-                  <TableCell sx={{ width: '45%', minWidth: 120 }}><Skeleton variant="text" width="100%" height={28} /></TableCell>
-                  <TableCell sx={{ width: '15%', minWidth: 60 }}><Skeleton variant="text" width="100%" height={28} /></TableCell>
-                  <TableCell sx={{ width: '20%', minWidth: 90 }}><Skeleton variant="text" width="100%" height={28} /></TableCell>
-                  <TableCell sx={{ width: '20%', minWidth: 100 }}><Skeleton variant="text" width="100%" height={28} /></TableCell>
+                  <TableCell sx={{ width: '45%', minWidth: 120 }}><Skeleton animation="wave" variant="text" width="100%" height={28} /></TableCell>
+                  <TableCell sx={{ width: '15%', minWidth: 60 }}><Skeleton animation="wave" variant="text" width="100%" height={28} /></TableCell>
+                  <TableCell sx={{ width: '20%', minWidth: 90 }}><Skeleton animation="wave" variant="text" width="100%" height={28} /></TableCell>
+                  <TableCell sx={{ width: '20%', minWidth: 100 }}><Skeleton animation="wave" variant="text" width="100%" height={28} /></TableCell>
                 </TableRow>
               ))
+            ) : filteredRows.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={4} sx={{ borderBottom: 'none', px: { xs: 1.5, sm: 2.5 }, py: 0 }}>
+                  <EmptyState
+                    iconType="report"
+                    compact
+                    title="No Completed Tasks"
+                    description="Completed tasks will appear here once work is marked done."
+                    minHeight={220}
+                  />
+                </TableCell>
+              </TableRow>
             ) : (
               filteredRows.map((row, idx) => (
                   <TableRow key={idx} sx={{ fontFamily: 'Nunito, Arial, sans-serif', borderBottom: '1.5px solid #E0E0E0', '&:last-child td': { borderBottom: 0 } }}>

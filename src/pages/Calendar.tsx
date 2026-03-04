@@ -5,7 +5,6 @@ import {
   Typography,
   Button,
   Avatar,
-  Skeleton,
   Checkbox,
   FormControlLabel,
   Dialog,
@@ -14,8 +13,12 @@ import {
   TextField,
   MenuItem,
   IconButton,
-  Autocomplete
+  Autocomplete,
+  useMediaQuery,
+  useTheme
 } from "@mui/material";
+import EmptyState from '../components/common/EmptyState';
+import { CalendarPanelSkeleton, TaskCardSkeleton } from '../components/common/AppSkeletons';
 import { getAuth } from "firebase/auth";
 import { collection, getDocs, query, where, doc, getDoc, onSnapshot, serverTimestamp, addDoc } from "firebase/firestore";
 import { db } from "../services/firebase";
@@ -112,6 +115,10 @@ interface CalendarProps {
 }
 
 const Calendar: React.FC<CalendarProps> = ({ sidebar }) => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isTabletOrBelow = useMediaQuery('(max-width:1023px)');
+  const sidebarWidthFallback = sidebar ? '72px' : 'clamp(220px, 18vw, 300px)';
   // Calendar date selection for new task creation
   const [calendarSelectedStart, setCalendarSelectedStart] = useState<string | null>(null);
   const [calendarSelectedEnd, setCalendarSelectedEnd] = useState<string | null>(null);
@@ -527,11 +534,11 @@ const handleSaveTask = async () => {
 
   // Remove auto-select: user must click to select a task
   return (
-    <Box sx={{ bgcolor: "#F9F9F9", height: "100vh", p: 3, width: sidebar ? 'calc(100vw - 75px)' : 'calc(100vw - 18vw)', ml: sidebar ? '75px' : '18vw', overflow: "hidden", overflowX: 'hidden', display: "flex", flexDirection: "column" }}>
+    <Box sx={{ bgcolor: "#F9F9F9", height: "100dvh", p: { xs: 1.5, sm: 2, md: 3 }, width: { xs: '100%', md: `calc(100% - var(--app-sidebar-width, ${sidebarWidthFallback}))` }, ml: { xs: 0, md: `var(--app-sidebar-width, ${sidebarWidthFallback})` }, maxWidth: '100%', minWidth: 0, overflow: "hidden", overflowX: 'hidden', display: "flex", flexDirection: "column" }}>
       {/* Top Tabs Row */}
-    <Box sx={{ display: "flex", alignItems: "center", gap: 3, mb: 2 }}>
+    <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2, flexWrap: 'wrap' }}>
       <Typography variant="h5" sx={{ fontWeight: 550, color: '#222', fontSize: 18, fontFamily: 'Nunito, Arial, sans-serif' }}>Calendar</Typography>     
-      <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', mt: 1, overflowX: 'auto', maxWidth: '100%', scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' } }}>
         {propertyNames.map((type) => (
           <Box
             key={type}
@@ -589,7 +596,9 @@ const handleSaveTask = async () => {
           textTransform: "none",
           fontSize: 16,
           fontWeight: 400,
-          ml: 2,
+          ml: { xs: 0, md: 2 },
+          width: { xs: '100%', sm: 'auto' },
+          mt: { xs: 1, sm: 0 },
         }}
         onClick={() => {
           // Prefill modal with selected calendar dates and property tab
@@ -606,8 +615,8 @@ const handleSaveTask = async () => {
       </Button>
     </Box>
       {/* Main content area */}
-      <Dialog open={addTaskOpen} onClose={() => setAddTaskOpen(false)} fullWidth PaperProps={{ sx: { borderRadius: 2, p: 2 } }}>
-        <DialogTitle sx={{ fontFamily: 'Nunito, Arial, sans-serif', minWidth: 400, fontWeight: 550, fontSize: 22, pb: 1 }}>Add Task</DialogTitle>
+      <Dialog open={addTaskOpen} onClose={() => setAddTaskOpen(false)} fullWidth fullScreen={isMobile} PaperProps={{ sx: { borderRadius: { xs: 0, sm: 2 }, p: { xs: 1, sm: 2 } } }}>
+        <DialogTitle sx={{ fontFamily: 'Nunito, Arial, sans-serif', fontWeight: 550, fontSize: { xs: 20, sm: 22 }, pb: 1 }}>Add Task</DialogTitle>
         <DialogContent sx={{ pt: 1 }}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
             {errors.general && (
@@ -742,7 +751,7 @@ const handleSaveTask = async () => {
                 />
               )}
             />
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mt: 1 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mt: 1, position: { xs: 'sticky', sm: 'static' }, bottom: 0, bgcolor: '#fff', pt: { xs: 1.5, sm: 0 }, zIndex: 2 }}>
               <Button variant="outlined" sx={cancelButtonStyle} onClick={() => setAddTaskOpen(false)}>
                 Cancel
               </Button>
@@ -753,14 +762,14 @@ const handleSaveTask = async () => {
           </Box>
         </DialogContent>
       </Dialog>
-      <Box sx={{ display: "flex", gap: 3, flex: 1, minHeight: 0 }}>
+      <Box sx={{ display: "flex", flexDirection: { xs: 'column', md: isTabletOrBelow ? 'column' : 'row' }, gap: { xs: 2, md: 3 }, flex: 1, minHeight: 0, overflow: 'hidden' }}>
         {/* Left: Task List */}
         <Box sx={{
-          flex: 2,
+          flex: isTabletOrBelow ? '1 1 auto' : 2,
           overflowY: 'auto',
           overflowX: 'visible', // allow box-shadow and border to show fully
-          maxHeight: '91vh',
-          minHeight: '91vh',
+          maxHeight: { xs: 'none', md: isTabletOrBelow ? 'none' : '91vh' },
+          minHeight: { xs: 220, md: isTabletOrBelow ? 220 : '91vh' },
           scrollbarWidth: 'none',
           '&::-webkit-scrollbar': { display: 'none' }
         }}>
@@ -795,22 +804,27 @@ const handleSaveTask = async () => {
             pb: 3,
           }}>
             {loading ? (
-              Array.from({ length: 8 }).map((_, idx) => (
-                <Box key={idx} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', bgcolor: '#f5f5f5', borderRadius: 2, p: 2, mx: 2.2, border: '2px solid #e0e0e0', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
-                  <Box sx={{ flex: 1 }}>
-                    <Skeleton variant="text" width={120} height={28} sx={{ mb: 1, borderRadius: 1 }} />
-                    <Skeleton variant="text" width="80%" height={18} sx={{ mb: 0.5, borderRadius: 1 }} />
-                    <Skeleton variant="text" width={90} height={14} sx={{ borderRadius: 1 }} />
-                  </Box>
-                  <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 1 }}>
-                    <Skeleton variant="text" width={40} height={14} sx={{ mb: 1, borderRadius: 1 }} />
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Skeleton variant="circular" width={24} height={24} />
-                      <Skeleton variant="text" width={60} height={18} />
-                    </Box>
-                  </Box>
-                </Box>
-              ))
+              <TaskCardSkeleton count={7} />
+            ) : filteredTasks.length === 0 ? (
+              <Box sx={{ mx: { xs: 1, sm: 2.2 } }}>
+                <EmptyState
+                  iconType="calendar"
+                  compact
+                  title="No Scheduled Tasks"
+                  description="Your calendar will display tasks once they are created."
+                  actionLabel="+ Create Task"
+                  onAction={() => {
+                    setNewTask(t => ({
+                      ...t,
+                      startDate: calendarSelectedStart || '',
+                      dueDate: calendarSelectedEnd || '',
+                      property: selectedTab !== propertyNames[0] ? selectedTab : '',
+                    }));
+                    setAddTaskOpen(true);
+                  }}
+                  minHeight={220}
+                />
+              </Box>
             ) : (
               (Array.isArray(filteredTasks) ? filteredTasks : []).map((task: any) => {
                 const tabIdx = getPropertyColorIdx(task.propertyType, propertyNames);
@@ -875,10 +889,10 @@ const handleSaveTask = async () => {
                     }}
                   >
                     <Box>
-                      <Typography variant="h6" sx={{ fontFamily: 'Nunito, Arial, sans-serif', color: "#343748", fontWeight: 550 }}>
+                      <Typography variant="h6" sx={{ fontFamily: 'Nunito, Arial, sans-serif', color: "#343748", fontWeight: 550, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: { xs: '58vw', md: '40vw' }, lineHeight: 1.25 }}>
                         {task.title}
                       </Typography>
-                      <Box sx={{ width: '100%', maxWidth: '40vw', overflow: 'hidden' }}>
+                      <Box sx={{ width: '100%', maxWidth: { xs: '100%', md: '40vw' }, overflow: 'hidden' }}>
                         <Typography
                           variant="body2"
                           sx={{
@@ -924,15 +938,20 @@ const handleSaveTask = async () => {
         {/* Right: Calendar */}
         <Box
           sx={{
-            flex: 1,
+            flex: isTabletOrBelow ? '1 1 auto' : 1,
             bgcolor: "#fff",
              borderRadius: 2,
-            p: 3,
+            p: { xs: 2, sm: 3 },
             boxShadow: 1,
-            minWidth: 340,
+            minWidth: 0,
             height: "fit-content",
+            order: { xs: -1, md: isTabletOrBelow ? -1 : 0 },
           }}
         >
+          {loading ? (
+            <CalendarPanelSkeleton />
+          ) : (
+            <>
           <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 3 }}>
             <IconButton
               sx={iconButtonStyle}
@@ -1102,13 +1121,13 @@ const handleSaveTask = async () => {
                   >
                     {typeof date === "number" ? date : ""}
                     {hasTaskDue && (
-                      <span style={{
+                    <span style={{
                         position: 'absolute',
                         left: '50%',
-                        bottom: 6,
+                        bottom: 4,
                         transform: 'translateX(-50%)',
-                        width: '10px',
-                        height: '10px',
+                        width: isMobile ? '8px' : '10px',
+                        height: isMobile ? '8px' : '10px',
                         borderRadius: '50%',
                         background: '#89AE99',
                         display: 'block',
@@ -1119,6 +1138,8 @@ const handleSaveTask = async () => {
               });
             })()}
           </Box>
+          </>
+          )}
         </Box>
       </Box>
     </Box>

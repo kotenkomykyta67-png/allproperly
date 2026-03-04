@@ -9,6 +9,7 @@ import DashboardHeader from "../components/dashboard/DashboardHeader";
 import SegmentTooltip from "../components/dashboard/SegmentTooltip";
 import TwelveSegmentCircle from "../components/dashboard/TwelveSegmentCircle";
 import HomeSetupJourney from "../components/dashboard/HomeSetupJourney";
+import EmptyState from "../components/common/EmptyState";
 import type { RefObject } from "react";
 import { useEffect, useState, useRef, useCallback } from "react";
 import { getAuth } from "firebase/auth";
@@ -98,6 +99,7 @@ interface MainDashboardProps {
 }
 
 const MainDashboard: React.FC<MainDashboardProps> = ({ carouselRef, sidebar, onAddClick, onPropertyClick, onShowUpgrade }) => {
+  const sidebarWidthFallback = sidebar ? '72px' : 'clamp(220px, 18vw, 300px)';
   // State for All Properties inner circle animation
   const [allPropertiesCircleAnimState, setAllPropertiesCircleAnimState] = useState<'origin' | 'to5' | 'back' | 'toFull' | 'shrink' | 'expandFromZero' | 'shrinkToOrigin'>('origin');
   // State for All Properties Monthly/Yearly/Actual toggle
@@ -852,8 +854,10 @@ const MainDashboard: React.FC<MainDashboardProps> = ({ carouselRef, sidebar, onA
       msOverflowStyle: 'none',
       '&::-webkit-scrollbar': { width: 0, height: 0, display: 'none' },
       maxHeight: '100vh',
-      width: { xs: '100vw', md: sidebar ? 'calc(100vw - 75px)' : 'calc(100vw - 18vw)' },
-      ml: { xs: 0, md: sidebar ? '75px' : '18vw' },
+      width: { xs: '100%', md: `calc(100% - var(--app-sidebar-width, ${sidebarWidthFallback}))` },
+      ml: { xs: 0, md: `var(--app-sidebar-width, ${sidebarWidthFallback})` },
+      maxWidth: '100%',
+      minWidth: 0,
     }}>
       {/* Top row: Dashboard title, Customize button, and carousel nav */}
       {/* On mobile: content width 92.8vw centered, balanced left/right padding. Desktop: full width. */}
@@ -911,7 +915,7 @@ const MainDashboard: React.FC<MainDashboardProps> = ({ carouselRef, sidebar, onA
                   <Paper key={index} sx={{ borderRadius: 2, width: { xs: mobileCardWidthXs, sm: cardWidthSm, md: cardWidthMd }, minWidth: { xs: mobileCardWidthXs, sm: cardWidthSm, md: cardWidthMd }, maxWidth: { xs: mobileCardWidthXs, sm: cardWidthSm, md: cardWidthMd }, height: 'auto', overflow: 'hidden', position: 'relative', display: 'flex', flexDirection: 'column', flex: '0 0 auto', p: 2, boxShadow: '0 2px 10px rgba(0,0,0,0.16)', ...cardSnapSx, ...mobileCardContentSx }}>
                     {/* Skeleton Image */}
                     <Box sx={{ mb: 1.5, borderRadius: 1, height: { xs: 200, sm: 240, md: 290 }, overflow: 'hidden' }}>
-                      <Skeleton variant="rectangular" width="100%" height="100%" />
+                      <Skeleton animation="wave" variant="rectangular" width="100%" height="100%" />
                     </Box>
                     
                     {/* Skeleton Content */}
@@ -919,29 +923,29 @@ const MainDashboard: React.FC<MainDashboardProps> = ({ carouselRef, sidebar, onA
                       {/* Skeleton Gauge and Details */}
                       <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
                         {/* Skeleton Gauge */}
-                        <Skeleton variant="circular" width={140} height={140} sx={{ flexShrink: 0 }} />
+                        <Skeleton animation="wave" variant="circular" width={140} height={140} sx={{ flexShrink: 0 }} />
                         
                         {/* Skeleton Details */}
                         <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 0.8, width: '100%' }}>
-                          <Skeleton variant="text" width="60%" height={20} />
-                          <Skeleton variant="text" width="100%" height={16} />
-                          <Skeleton variant="text" width="100%" height={16} />
-                          <Skeleton variant="text" width="80%" height={16} />
-                          <Skeleton variant="rectangular" width="100%" height={8} sx={{ borderRadius: 1, mt: 0.5 }} />
+                          <Skeleton animation="wave" variant="text" width="60%" height={20} />
+                          <Skeleton animation="wave" variant="text" width="100%" height={16} />
+                          <Skeleton animation="wave" variant="text" width="100%" height={16} />
+                          <Skeleton animation="wave" variant="text" width="80%" height={16} />
+                          <Skeleton animation="wave" variant="rectangular" width="100%" height={8} sx={{ borderRadius: 1, mt: 0.5 }} />
                         </Box>
                       </Box>
                       
                       {/* Skeleton Tasks Section */}
                       <Box sx={{ display: 'flex', gap: 2, mt: 1 }}>
                         <Box sx={{ flex: 1 }}>
-                          <Skeleton variant="text" width="100%" height={18} sx={{ mb: 1 }} />
-                          <Skeleton variant="text" width="100%" height={14} />
-                          <Skeleton variant="text" width="100%" height={14} sx={{ mt: 0.5 }} />
+                          <Skeleton animation="wave" variant="text" width="100%" height={18} sx={{ mb: 1 }} />
+                          <Skeleton animation="wave" variant="text" width="100%" height={14} />
+                          <Skeleton animation="wave" variant="text" width="100%" height={14} sx={{ mt: 0.5 }} />
                         </Box>
                         <Box sx={{ flex: 1 }}>
-                          <Skeleton variant="text" width="100%" height={18} sx={{ mb: 1 }} />
-                          <Skeleton variant="text" width="100%" height={14} />
-                          <Skeleton variant="text" width="100%" height={14} sx={{ mt: 0.5 }} />
+                          <Skeleton animation="wave" variant="text" width="100%" height={18} sx={{ mb: 1 }} />
+                          <Skeleton animation="wave" variant="text" width="100%" height={14} />
+                          <Skeleton animation="wave" variant="text" width="100%" height={14} sx={{ mt: 0.5 }} />
                         </Box>
                       </Box>
                     </Box>
@@ -949,8 +953,14 @@ const MainDashboard: React.FC<MainDashboardProps> = ({ carouselRef, sidebar, onA
                 ))}
               </>
             ) : properties.length === 0 ? (
-              <Paper sx={{ width: { xs: '100%', sm: 360, md: 480 }, minWidth: { xs: '100%', sm: 360, md: 480 }, maxWidth: { xs: '100%', sm: 360, md: 480 }, height: { xs: 200, sm: 240, md: 290 }, display: 'flex', alignItems: 'center', justifyContent: 'center',  borderRadius: 2 }}>
-                <Typography variant="body1" color="text.secondary">No properties found.</Typography>
+              <Paper sx={{ width: { xs: '100%', sm: 360, md: 480 }, minWidth: { xs: '100%', sm: 360, md: 480 }, maxWidth: { xs: '100%', sm: 360, md: 480 }, minHeight: { xs: 360, sm: 420, md: 520 }, display: 'flex', alignItems: 'stretch', justifyContent: 'center', borderRadius: 2 }}>
+                <EmptyState
+                  iconType="property"
+                  title="No Properties Yet"
+                  description="Add your first property to start tracking expenses, tasks, and financial insights."
+                  actionLabel="Add Property"
+                  onAction={handleAddClick}
+                />
               </Paper>
             ) : (
               <>
@@ -1157,7 +1167,7 @@ const MainDashboard: React.FC<MainDashboardProps> = ({ carouselRef, sidebar, onA
                   // 4. Otherwise: show FRIEND CARD (if you have one)
                   return ((isOwner || isCoOwner) && prop.isRental) ? (
                     // RENTAL PROPERTY CARD (for owner or co-owner)
-                    <Paper key={prop.id} sx={{ borderRadius: 2, width: isSingleProperty ? { xs: '100%', sm: '100%', md: singleCardWidth } : { xs: mobileCardWidthXs, sm: cardWidthSm, md: cardWidthMd }, minWidth: isSingleProperty ? { xs: '100%', sm: '100%', md: singleCardWidth } : { xs: mobileCardWidthXs, sm: cardWidthSm, md: cardWidthMd }, maxWidth: isSingleProperty ? { xs: '100vw', sm: '100%', md: singleCardWidth } : { xs: '100vw', sm: cardWidthSm, md: cardWidthMd }, height: 'auto', overflow: 'hidden', position: 'relative', display: 'flex', flexDirection: 'column', flex: '0 0 auto', p: 2, boxShadow: '0 2px 10px rgba(0,0,0,0.16)', ...cardSnapSx, ...mobileCardContentSx }}>
+                    <Paper key={prop.id} sx={{ borderRadius: 2, width: isSingleProperty ? { xs: '100%', sm: '100%', md: singleCardWidth } : { xs: mobileCardWidthXs, sm: cardWidthSm, md: cardWidthMd }, minWidth: isSingleProperty ? { xs: '100%', sm: '100%', md: singleCardWidth } : { xs: mobileCardWidthXs, sm: cardWidthSm, md: cardWidthMd }, maxWidth: isSingleProperty ? { xs: '100%', sm: '100%', md: singleCardWidth } : { xs: '100%', sm: cardWidthSm, md: cardWidthMd }, height: 'auto', overflow: 'hidden', position: 'relative', display: 'flex', flexDirection: 'column', flex: '0 0 auto', p: 2, boxShadow: '0 2px 10px rgba(0,0,0,0.16)', ...cardSnapSx, ...mobileCardContentSx }}>
                       
                       {/* Main content wrapper - 2x2 grid for single property, vertical for multiple */}
                       {isSingleProperty ? (
@@ -5043,39 +5053,39 @@ const MainDashboard: React.FC<MainDashboardProps> = ({ carouselRef, sidebar, onA
             <Box sx={{ display: 'flex', gap: 1.5, pb: 1, boxSizing: 'border-box' }}>
               {/* Skeleton Board 1 */}
               <Paper sx={{ bgcolor: '#fff', borderRadius: 2, py: 1.5, px: 4, boxShadow: '0 2px 8px rgba(0,0,0,0.06)', minWidth: '50%', flex: '0 0 50%' }}>
-                <Skeleton width={160} height={28} />
+                <Skeleton animation="wave" width={160} height={28} />
                 <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mt: 2 }}>
-                  <Skeleton variant="circular" width={140} height={140} />
+                  <Skeleton animation="wave" variant="circular" width={140} height={140} />
                   <Box sx={{ flex: 1 }}>
-                    <Skeleton width="100%" height={20} />
-                    <Skeleton width="80%" height={16} sx={{ mt: 1 }} />
-                    <Skeleton width="60%" height={16} sx={{ mt: 1 }} />
+                    <Skeleton animation="wave" width="100%" height={20} />
+                    <Skeleton animation="wave" width="80%" height={16} sx={{ mt: 1 }} />
+                    <Skeleton animation="wave" width="60%" height={16} sx={{ mt: 1 }} />
                   </Box>
                 </Box>
               </Paper>
 
               {/* Skeleton Board 2 */}
               <Paper sx={{ bgcolor: '#fff', borderRadius: 2, py: 1.5, px: 4, boxShadow: '0 2px 8px rgba(0,0,0,0.06)', minWidth: '50%', flex: '0 0 50%' }}>
-                <Skeleton width={180} height={28} />
+                <Skeleton animation="wave" width={180} height={28} />
                 <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mt: 2 }}>
-                  <Skeleton variant="rectangular" width={220} height={180} />
+                  <Skeleton animation="wave" variant="rectangular" width={220} height={180} />
                   <Box sx={{ flex: 1 }}>
-                    <Skeleton width="90%" height={18} />
-                    <Skeleton width="70%" height={18} sx={{ mt: 1 }} />
-                    <Skeleton width="50%" height={18} sx={{ mt: 1 }} />
+                    <Skeleton animation="wave" width="90%" height={18} />
+                    <Skeleton animation="wave" width="70%" height={18} sx={{ mt: 1 }} />
+                    <Skeleton animation="wave" width="50%" height={18} sx={{ mt: 1 }} />
                   </Box>
                 </Box>
               </Paper>
 
               {/* Skeleton Board 3 */}
               <Paper sx={{ bgcolor: '#fff', borderRadius: 2, py: 1.5, px: 4, boxShadow: '0 2px 8px rgba(0,0,0,0.06)', minWidth: '50%', flex: '0 0 50%' }}>
-                <Skeleton width={160} height={28} />
+                <Skeleton animation="wave" width={160} height={28} />
                 <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mt: 2 }}>
-                  <Skeleton variant="circular" width={140} height={140} />
+                  <Skeleton animation="wave" variant="circular" width={140} height={140} />
                   <Box sx={{ flex: 1 }}>
-                    <Skeleton width="100%" height={20} />
-                    <Skeleton width="80%" height={16} sx={{ mt: 1 }} />
-                    <Skeleton width="60%" height={16} sx={{ mt: 1 }} />
+                    <Skeleton animation="wave" width="100%" height={20} />
+                    <Skeleton animation="wave" width="80%" height={16} sx={{ mt: 1 }} />
+                    <Skeleton animation="wave" width="60%" height={16} sx={{ mt: 1 }} />
                   </Box>
                 </Box>
               </Paper>
@@ -5837,7 +5847,13 @@ const MainDashboard: React.FC<MainDashboardProps> = ({ carouselRef, sidebar, onA
                   {/* Dynamic Setup Tasks List - 50% width */}
                   <Box sx={{ width: '50%', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 0.4, mt: 1.5  }}>
                     {(!properties || properties.length === 0) ? (
-                      <Typography sx={{ fontSize: 12, color: '#888' }}>No properties found.</Typography>
+                      <EmptyState
+                        iconType="property"
+                        compact
+                        title="No Properties Added"
+                        description="Add a property to begin setup tracking."
+                        minHeight={180}
+                      />
                     ) : properties.map((p, idx) => {
                       let displayName = p.tag || `Property ${idx+1}`;
                       if (p.isShared && p.alias) {
